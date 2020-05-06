@@ -47,7 +47,19 @@ class ReadLinFile:
                 # dealer & hands
                 self.board.dealer = ReadLinFile.dealer_value[value[0]]
                 self._md(value)
-                
+            elif label=='mb':
+                # bid
+                self.board.bidding.append(bo.Bid(value))
+            elif label=='pg':
+                # start or end of playing round i.e 1 trick taken
+                pass
+            elif label=='pc':
+                # value = D3, H9
+                value = '%s%s' % (value[1],value[0])
+                # self.board.play.declarer = self.board.declarer
+                # self.board.play.contract = self.board.contract
+                self.board.play.append(bo.Card(value))
+
     def _pn(self, value):
         players = value.split(',')
         self.board.player_south = players[0]
@@ -78,8 +90,11 @@ class ReadLinFile:
 file = '/home/steve/development/doubleDummy/data/3399426641.lin'
 a = ReadLinFile(file)
 b = a.board
-print (b.deal_hand_4.suit_split())
-
+print (b.board_name)
+print (b.dealer)
+print (b.bidding)
+print (b.contract)
+print (b.declarer)
 
 
     

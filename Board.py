@@ -24,6 +24,7 @@ class Board:
         self.declarer = ''  
         self.contract = ''
         self.penalty = ''
+        self.play = Play()
 
     @property
     def vulnerable(self):
@@ -50,7 +51,7 @@ class Board:
     def calc_deal_hand_4(self):
         """
             cardpack - h1 - h2 - h3
-            special method used by LIN files
+            special method used by LIN files for 4th hand
         """
         h1 = self.deal_hand_1.as_int()
         h2 = self.deal_hand_2.as_int()
@@ -59,6 +60,20 @@ class Board:
         self.deal_hand_4.bulk_append_int(h4)
         self.deal_hand_4.arrange_LIN_cards()
 
+class Play():
+
+    def __init__(self):
+        self._raw = []
+        self.contract = ''
+        self.declarer = ''  
+
+    def append(self, value: 'Card'):
+        self._raw.append(value)
+
+
+
+
+
 class Hand(list):
     """
         Hand is a container of Card objects
@@ -66,7 +81,7 @@ class Hand(list):
     def __init__(self):
         pass
 
-    def append(self, value):
+    def append(self, value: 'Card'):
         if (isinstance(value, Card)):
             super().append(value)
         else:
@@ -81,7 +96,7 @@ class Hand(list):
         for facevalue in facevalues:
             self.append(Card(facevalue, suit))
 
-    def bulk_append_int(self, cards:list):
+    def bulk_append_int(self, cards: 'list[int, ...]'):
         """
             bulk_append_int([10, 15, 25])
                 integers as card representation
@@ -89,7 +104,7 @@ class Hand(list):
         for each in cards:
             self.append(Card(each))
 
-    def bulk_append_card(self, cards:list):
+    def bulk_append_card(self, cards: 'list[Card, ...]'):
         """
             cards = [Card(), Card()]
         """
@@ -97,7 +112,7 @@ class Hand(list):
             self.append(each)
 
 
-    def as_int(self):
+    def as_int(self) -> 'list[int, ...]':
         """
             Hand as card ints
         """
@@ -106,7 +121,7 @@ class Hand(list):
             r.append(card.as_int())
         return r
 
-    def find(self, value):
+    def find(self, value) -> int:
         """
             find a card in the Hand
             value: '6c' or int
@@ -124,9 +139,9 @@ class Hand(list):
         except:
             return -1
 
-    def suit_split(self) -> tuple:
+    def suit_split(self) -> 'tuple([spades], [hearts], [diamonds], [clubs])':
         """
-            (spades, hearts, diamonds, clubs)
+            splits hand of card object into 4 suits 
         """
         d = {'S':[], 'H':[], 'D':[], 'C':[]}
         for each in self:
@@ -268,7 +283,6 @@ class Bidding(list):
                 self._last_penalty = utility.Constants.double
                 self._no_suit_bid_count = self._no_suit_bid_count + 1
                 super().append(value)
-                self._end_of_bidding()
             else:
                 raise ValueError('bid, cannot double when previous penalty is: %s' % self._last_penalty)
         elif value.bid==utility.Constants.redouble:
@@ -277,7 +291,6 @@ class Bidding(list):
                 self._last_penalty = utility.Constants.redouble
                 self._no_suit_bid_count = self._no_suit_bid_count + 1
                 super().append(value)
-                self._end_of_bidding()
             else:
                 raise ValueError('bid, cannot redouble when previous penalty is: %s' % self._last_penalty)
         elif value.bid==utility.Constants.pass_:
@@ -287,7 +300,8 @@ class Bidding(list):
                 if self._no_suit_bid_count < 3:
                     self._no_suit_bid_count = self._no_suit_bid_count + 1
                     super().append(value)
-                    self._end_of_bidding()
+                    if self._no_suit_bid_count == 3:
+                        self._end_of_bidding()
             else:
                 # no suit has been bid, p-p-p-p edge case
                 if self._no_suit_bid_count < 4:
@@ -304,12 +318,10 @@ class Bidding(list):
             checks if bidding is at an end
             and updates necessary
         """
-        if self._no_suit_bid_count==3:
-            # Bidding is at an end
-            self.contract = self._last_suit_bid
-            self.penalty = self._last_penalty
-            # Update declarer position
-            self.declarer_position = len(self)%4 
+        self.contract = self._last_suit_bid
+        self.penalty = self._last_penalty
+        # Update declarer position
+        self.declarer_position = len(self)%4 
 
     def _is_suit_bid(self, value) -> bool:
         """
@@ -384,7 +396,8 @@ if __name__  == '__main__':
     bidding.debug_state()
     bidding.append(b6)
     bidding.debug_state()
-
+    print (bidding)
+"""
     #Bid seq2
     b1 = Bid('1c')
     b2 = Bid('p')
@@ -426,5 +439,5 @@ if __name__  == '__main__':
     bidding.debug_state()
     bidding.append(b4)
     bidding.debug_state()
-
+"""
 
