@@ -47,8 +47,17 @@ class Board:
         else:
             raise ValueError('invalid dealer value: %s' % value)
         
-
-
+    def calc_deal_hand_4(self):
+        """
+            cardpack - h1 - h2 - h3
+            special method used by LIN files
+        """
+        h1 = self.deal_hand_1.as_int()
+        h2 = self.deal_hand_2.as_int()
+        h3 = self.deal_hand_3.as_int()
+        h4 = list(set(utility.Constants.all_cards).difference(set(h1+h2+h3)))
+        self.deal_hand_4.bulk_append_int(h4)
+        self.deal_hand_4.arrange_LIN_cards()
 
 class Hand(list):
     """
@@ -71,6 +80,22 @@ class Hand(list):
         facevalues = facevalues.upper()
         for facevalue in facevalues:
             self.append(Card(facevalue, suit))
+
+    def bulk_append_int(self, cards:list):
+        """
+            bulk_append_int([10, 15, 25])
+                integers as card representation
+        """
+        for each in cards:
+            self.append(Card(each))
+
+    def bulk_append_card(self, cards:list):
+        """
+            cards = [Card(), Card()]
+        """
+        for each in cards:
+            self.append(each)
+
 
     def as_int(self):
         """
@@ -98,6 +123,28 @@ class Hand(list):
             return self.index(value)
         except:
             return -1
+
+    def suit_split(self) -> tuple:
+        """
+            (spades, hearts, diamonds, clubs)
+        """
+        d = {'S':[], 'H':[], 'D':[], 'C':[]}
+        for each in self:
+            suit = each.suit()
+            d[suit].append(each)
+        return (d['S'],d['H'],d['D'],d['C'])
+
+    def arrange_LIN_cards(self):
+        """
+            arranges cards in LIN order
+        """
+        s,h,d,c = self.suit_split()
+        s.sort()
+        h.sort()
+        d.sort()
+        c.sort()
+        self.clear()
+        self.bulk_append_card(s + h + d + c)
 
 class Card:
     """
@@ -165,7 +212,12 @@ class Card:
         return self._card
 
     def __eq__(self, other):
-        if self.as_int()==other:
+        if self.as_int()==other.as_int():
+            return True
+        return False
+
+    def __lt__(self, other):
+        if self.as_int() < other.as_int():
             return True
         return False
 
@@ -259,10 +311,6 @@ class Bidding(list):
             # Update declarer position
             self.declarer_position = len(self)%4 
 
-
-
-
-
     def _is_suit_bid(self, value) -> bool:
         """
             for any bids not pass, dbl, rdb
@@ -271,35 +319,6 @@ class Bidding(list):
             return False
         else:
             return True
-    
-    def _get_position(self, value):
-        """
-            for any bid returns 'S', 'W', 'N', 'E' 
-        """
-        Eself.dealer
-
-    def _get_contract(self):
-        """
-            return 'nS', 'nH', 'nD', 'nC', 'nN'
-        """
-        pass
-
-    def _get_penalty(self):
-        """
-            get the penalty
-                'none', 'dbl', 'rdb'
-        """
-        pass
-
-    def _get_declarer(self):
-        """
-            may not be required
-        """
-        pass
-
-    
-
-
 
 class Bid:
     """
@@ -321,8 +340,6 @@ class Bid:
 
     def __str__(self):
         return '%s' % self.bid
-
-
 
 
 if __name__  == '__main__':
