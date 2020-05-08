@@ -54,11 +54,9 @@ class ReadLinFile:
                 # start or end of playing round i.e 1 trick taken
                 pass
             elif label=='pc':
-                # value = D3, H9
+                # card played, eg. D3, H9
                 value = '%s%s' % (value[1],value[0])
-                # self.board.play.declarer = self.board.declarer
-                # self.board.play.contract = self.board.contract
-                self.board.play.append(bo.Card(value))
+                # self.board.play.append(bo.Card(value))
 
     def _pn(self, value):
         players = value.split(',')

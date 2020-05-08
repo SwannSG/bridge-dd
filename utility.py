@@ -42,4 +42,4 @@ class Constants:
     is_not_suit_bid = [double, redouble, pass_,]    
     
 
-  
+
