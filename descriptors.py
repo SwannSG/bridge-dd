@@ -1,3 +1,7 @@
+"""
+    OneShotDescriptor is not used.
+    Proving to be unreliable and needs more work.
+"""
 class OneShotDesciptor:
     """
         Allows a property of a class to be set only once.
@@ -25,7 +29,8 @@ class OneShotDesciptor:
                 raise AttributeError('Once %s is set, it becomes read-only' % self.name)
         else:
             # initialise
-            obj.__dict__[self.name] = value
+            obj.__dict__[self.name] = ''
+
 
 if __name__  == '__main__':
     class Abc:

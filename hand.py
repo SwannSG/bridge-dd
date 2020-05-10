@@ -14,9 +14,9 @@ class Hand(list):
         else:
             raise TypeError('object must be type Card')
 
-    def bulk_append(self, facevalues:str, suit:str):
+    def bulk_append(self, facevalues:'str', suit:'str'):
         """
-            bulk_append('s', 'AT9543')
+            bulk_append('AT9543', 's')
         """
         suit = suit.upper()
         facevalues = facevalues.upper()
@@ -102,3 +102,44 @@ if __name__ == '__main__':
     assert h.find(23)==0
     assert h.find('SS')==-1
     
+    h = Hand()
+    h.bulk_append('AT9543', 's')
+    assert h==[card.Card('AS'), card.Card('TS'), card.Card('9S'),
+    card.Card('5S'),card.Card('4S'),card.Card('3S')]
+
+    h = Hand()
+    h.bulk_append_card([card.Card('AS'), card.Card('TS'), card.Card('9S'),
+    card.Card('5S'),card.Card('4S'),card.Card('3S')])
+    assert h==[card.Card('AS'), card.Card('TS'), card.Card('9S'),
+    card.Card('5S'),card.Card('4S'),card.Card('3S')]
+
+    h = Hand()
+    h.bulk_append_int([52,48,47,43,42,41])
+    assert h==[card.Card('AS'), card.Card('TS'), card.Card('9S'),
+    card.Card('5S'),card.Card('4S'),card.Card('3S')]
+
+    h = Hand()
+    h.bulk_append('AT9543', 's')
+    h.bulk_append('AT9543', 'h')
+    h.bulk_append('AT9543', 'd')
+    h.bulk_append('AT9543', 'c')
+    a,b,c,d = h.suit_split()
+    assert a==[card.Card('AS'), card.Card('TS'), card.Card('9S'),
+    card.Card('5S'),card.Card('4S'),card.Card('3S')]
+    assert b==[card.Card('AH'), card.Card('TH'), card.Card('9H'),
+    card.Card('5H'),card.Card('4H'),card.Card('3H')]
+    assert c==[card.Card('AD'), card.Card('TD'), card.Card('9D'),
+    card.Card('5D'),card.Card('4D'),card.Card('3D')]
+    assert d==[card.Card('AC'), card.Card('TC'), card.Card('9C'),
+    card.Card('5C'),card.Card('4C'),card.Card('3C')]
+    
+    'S569QKAH35D2467C4'
+    h = Hand()
+    h.bulk_append_card([card.Card('AS'), card.Card('2S'),
+        card.Card('KH'), card.Card('2H'), card.Card('TH'),
+        card.Card('AD'), card.Card('2D'),
+        card.Card('KC'), card.Card('2C'), card.Card('TC')])
+    h.arrange_LIN_cards()
+    assert h==[ card.Card('2S'), card.Card('AS'), card.Card('2H'),
+                card.Card('TH'), card.Card('KH'), card.Card('2D'),
+                card.Card('AD'), card.Card('2C'), card.Card('TC'), card.Card('KC')]
