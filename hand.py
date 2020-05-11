@@ -16,8 +16,10 @@ class Hand(list):
 
     def bulk_append(self, facevalues:'str', suit:'str'):
         """
-            bulk_append('AT9543', 's')
+            bulk_append('569QKA', 's')
         """
+        assert type(facevalues)==str
+        assert type(suit)==str 
         suit = suit.upper()
         facevalues = facevalues.upper()
         for facevalue in facevalues:

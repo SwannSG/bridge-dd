@@ -1,233 +1,235 @@
-"""
-    CHECK DOUBLE OR REDOUBLE IS NOT MADE OVER PARTNERS BID 
-"""
-
 import bid
-import descriptors
 import utility
 
-class Bidding(list):
-    """
-        Bidding is a container of Bid objects 
-    """
-    
+class Bidding:
+
     def __init__(self):
+        self.contract = ''
+        self.position = -1
+        self.penalty = ''
 
-        # must be read only properties from outside
-        # and one shot setting
-        self._contract = ''
-        self._penalty = ''
-        self._declarer_position = -1
-        
-        # properties used internally
+        self.bids = [] # takes bid objects 
+        self.bidding_closed = False
         self._no_suit_bid_count = 0
-        self._last_suit_bid = ''
-        self._last_penalty = ''
-        self._debug_bid_value = ''
+        self._last_suit_bid = bid.Bid(None) 
+        self._bid_position = 1
+        self._last_penalty = bid.Bid(None)
 
-    def get_contract(self): return self._contract
-    def get_penalty(self): return self._penalty
-    def get_declarer_position(self): return self._declarer_position
-
-    def set_contract(self, value):
-        if not self.get_contract():
-            self._contract = value
-
-    def set_penalty(self, value):
-        if not self.get_penalty():
-            self._penalty = value
-
-    def set_declarer_position(self, value):
-        if self.get_declarer_position() == -1:
-            self._declarer_position = value
-
-    def debug_state(self):
-        # method for debug
-        print ('value bid: %s' % self._debug_bid_value)
-        print ('contract:%s, penalty:%s, declarer_position:%s' % 
-                (self.get_contract(), self.get_penalty(), self.get_declarer_position()))
-        print ('_no_suit_bid_count:%s, _last_suit_bid:%s, _last_penalty:%s' % (self._no_suit_bid_count, self._last_suit_bid, self._last_penalty)  )        
-        print ()
-        
-    def append(self, value:'Bid'):
-        if self.get_contract():
-            raise ValueError('Bidding is closed')
-        if (isinstance(value, bid.Bid)):
-            self._add_bid_if_valid(value)
-        else:
-            raise TypeError('object must be type Bid: %s' % value)
-
-    def _last_suit_bid_rank(self) -> int:
-        """
-            returns rank of suit as a string eg. '1c'
-                and
-            return 0 if _last_suit_bid is an empty string 
-        """
-        if not self._last_suit_bid:
-            return 0
-        else:
-            return utility.Constants.bid_rank[self._last_suit_bid]
-
-    def _add_bid_if_valid(self, value:'Bid') -> bool:
-        self._debug_bid_value = value.bid
-        if self._is_suit_bid(value.bid):
-            # suit bid e.g '1c', '1n'
-            if value.rank() > self._last_suit_bid_rank(): 
-                self._last_suit_bid = value.bid
-                self._no_suit_bid_count = 0
-                super().append(value)
-            else:
-                raise ValueError('bid, must be at a level above %s, bid is %s' % (self._last_suit_bid, value))
-        elif value.bid==utility.Constants.double:
-            # dbl
-            if not self._last_suit_bid:
-                # no suit bid
-                raise ValueError('bid, cannot double when no suit yet bid') 
-            if not self._last_penalty:
-                self._last_penalty = utility.Constants.double
-                self._no_suit_bid_count = self._no_suit_bid_count + 1
-                super().append(value)
-            else:
-                raise ValueError('bid, cannot double when previous penalty is: %s' % self._last_penalty)
-        elif value.bid==utility.Constants.redouble:
-            # rdbl
-            if self._last_penalty==utility.Constants.double:
-                self._last_penalty = utility.Constants.redouble
-                self._no_suit_bid_count = self._no_suit_bid_count + 1
-                super().append(value)
-            else:
-                raise ValueError('bid, cannot redouble when previous penalty is: %s' % self._last_penalty)
-        elif value.bid==utility.Constants.pass_:
-            # pass
-            if self._last_suit_bid:
-                # suit has been bid
-                if self._no_suit_bid_count < 3:
-                    self._no_suit_bid_count = self._no_suit_bid_count + 1
-                    super().append(value)
-                    if self._no_suit_bid_count == 3:
-                        self._end_of_bidding()
-            else:
-                # no suit has been bid, p-p-p-p edge case
-                if self._no_suit_bid_count < 4:
-                    self._no_suit_bid_count = self._no_suit_bid_count + 1
-                    super().append(value)
-                    if self._no_suit_bid_count==4:
-                        # Bidding is at an end
-                        self.set_contract('none')
-        else:
-            raise ValueError('unkown bid: %s' % value.bid)
-
-    def _end_of_bidding(self):
-        """
-            does updates at end of bidding
-        """
-        self.set_contract(self._last_suit_bid)
-        self.set_penalty(self._last_penalty)
-        self.set_declarer_position(len(self)%4) 
-    
-
-    def _declarer(self, position, dealer):
-        """
-            E,3     E,S,W,N
-        """
-        pass
-
-    def _is_suit_bid(self, value:'str') -> bool:
-        """
-            for any bids not 'p'ass, 'd'bl, 'r'db
-        """
-        if value in utility.Constants.is_not_suit_bid:
+    def bid_ok(self, value:'Bid') -> bool:
+        if self.bidding_closed:
             return False
+        if not self._last_suit_bid and self._no_suit_bid_count < 4:
+            # no suit yet bid, 'pass' or any suit is ok 
+            if value.bid=='P': return True
+            if value.has_rank: return True
+            return False
+        if self._last_suit_bid and self._no_suit_bid_count < 3 and not value.has_rank:
+            # bid = (P)ass || (D)bl || (R)dbl (and a suit has already been bid)
+            if value.bid=='P': return True
+            if value.bid=='D' and self._last_suit_bid.team() != value.team() and self._last_penalty != 'D' and self._last_penalty != 'R': return True
+            if value.bid=='R' and value.team() != self._last_penalty.team() and self._last_penalty.bid == 'D': return True
+            return False 
+        if self._last_suit_bid and self._no_suit_bid_count < 3 and value.has_rank:
+            # bid = suit
+            if value.rank > self._last_suit_bid.rank: return True
+            return False
+
+
+
+    def add_bid(self, value:'Bid') -> None:
+        self._set_bid_position(value)     
+        if self.bid_ok(value):
+            if value.bid=='P':
+                # bid = pass 'P'
+                self.add_pass(value)
+                if self.is_end_of_bidding():
+                    self.end_of_bidding()
+            elif value.has_rank:
+                # bid = suit incl. no trumps
+                self.add_suit(value)
+            elif value.bid=='D':
+                # bid = double 'D'
+                self.add_double(value)
+                if self.is_end_of_bidding():
+                    self.end_of_bidding()
+            elif value.bid=='R':
+                # bid = redouble 'R'
+                self.add_redouble(value)
+                if self.is_end_of_bidding():
+                    self.end_of_bidding()
         else:
+            # NEED TO HANDLE DIFFENRENTLY
+            raise ValueError('Bid not ok %s position %s' % (value.bid, value.position))
+
+    def add_pass(self, value:'Bid'):
+        self._no_suit_bid_count += 1
+        self.bids.append(value)
+
+    def add_double(self,value:'Bid'):
+        self._no_suit_bid_count = 0
+        self._last_penalty = value
+        self.bids.append(value)
+
+    def add_redouble(self,value:'Bid'):
+        self._no_suit_bid_count = 0
+        self._last_penalty = value
+        self.bids.append(value)
+
+    def add_suit(self, value:'Bid'):
+        self._no_suit_bid_count = 0
+        self._last_suit_bid = value
+        self._last_penalty = None
+        self.bids.append(value)
+
+    def _set_bid_position(self, value:'Bid'):
+        """
+            set the position from which the bid was made 1,2,3,4 
+        """
+        value.position = self._bid_position
+        self._bid_position += 1
+
+    def end_of_bidding(self):
+        self.bidding_closed = True
+        self._set_contract()
+
+    def _set_contract(self):
+        self.contract = self._last_suit_bid.bid if self._last_suit_bid else 'all passed' 
+        self.position = self._last_suit_bid.position if self._last_suit_bid else -1
+        self.penalty = self._last_penalty.bid if self._last_penalty else ''
+
+    def is_end_of_bidding(self) -> bool:
+        if self._last_suit_bid and self._no_suit_bid_count==3:
             return True
+        if not self._last_suit_bid and self._no_suit_bid_count==4:
+            return True
+        return False
+
+
+
+
 
 if __name__=='__main__':
-    g = Bidding()
-    b1 = bid.Bid('1h')
-    g.append(b1)
-    assert g==[b1]
-    temp = 0
+
+    # test
+    b = Bidding()
+    b1 = bid.Bid('p')
+    assert b.bid_ok(b1)==True
+    b.add_bid(b1)
+    assert b1.position==1
+    # end
+
+    # test with 4 pass bids
+    b = Bidding()
+    b.add_bid(bid.Bid('p'))
+    assert b.bidding_closed==False
+    b.add_bid(bid.Bid('p'))
+    assert b.bidding_closed==False
+    b.add_bid(bid.Bid('p'))
+    assert b.bidding_closed==False
+    b.add_bid(bid.Bid('p'))
+    assert b.bidding_closed==True
+    assert b.bids[0].position==1
+    assert b.bids[1].position==2
+    assert b.bids[2].position==3
+    assert b.bids[3].position==4
+    assert b.contract=='all passed'
+    assert b.penalty==''
+    assert b.position==-1
+    # end 
+
+    b = Bidding()
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1C'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    assert b.contract=='1C'
+    assert b.penalty==''
+    assert b.position==2
+    # end
+
+    b = Bidding()
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1C'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1S'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    assert b.contract=='1S'
+    assert b.penalty==''
+    assert b.position==4
+    # end
+
+
+    # good dbl
+    b = Bidding()
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1C'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1S'))
+    b.add_bid(bid.Bid('D'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    assert b.contract=='1S'
+    assert b.penalty=='D'
+    assert b.position==4
+    # end
+
+    # bad dbl
+    b = Bidding()
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1C'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1S'))
+    b.add_bid(bid.Bid('P'))
+    r = 0
     try:
-        g.append(b1)
-        g.debug_state()
-        temp = temp + 1
-    except ValueError:
+        b.add_bid(bid.Bid('D'))
+        r = 1
+    except:
         pass
-    assert temp==0
+    assert r==0
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('P'))
+    # end
 
-    g = Bidding()
-    b1 = bid.Bid('1h')
-    g.append(b1)
-    temp = 0
+    # bad rdbl
+    b = Bidding()
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1C'))
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1S'))
+    b.add_bid(bid.Bid('D'))
+    b.add_bid(bid.Bid('P'))
+    r = 0
     try:
-        g.append(bid.Bid('1c'))
-        temp = temp + 1
-    except ValueError:
+        b.add_bid(bid.Bid('R'))
+        r = 1
+    except:
         pass
-    assert temp==0
+    assert r==0
+    # end
 
-    g = Bidding()
-    b1 = bid.Bid('d')
-
-
-    
-
-"""
-
-    # 4 passes
-    g = Bidding()
-    assert g.get_penalty()==''
-    assert g.get_contract()==''
-    assert g.get_declarer_position()==-1
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    assert g.get_contract()=='none'; assert g.get_declarer_position()==-1; assert g.get_penalty()==''
-
-    g = Bidding()
-    g.append(bid.Bid('1h'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    assert g.get_contract()=='1H'; assert g.get_declarer_position()==0; assert g.get_penalty()==''
-
-    g = Bidding()
-    g.append(bid.Bid('1h'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('1s'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    temp = 0
-    try:
-        g.append(bid.Bid('1c'))
-        temp = temp + 1
-    except ValueError:
-        pass
-    assert temp==0
-    assert g.get_contract()=='1S'; assert g.get_declarer_position()==3; assert g.get_penalty()==''
-
-    g = Bidding()
-    g.append(bid.Bid('1h'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('p'))
-    g.append(bid.Bid('1c'))
-
-    temp = 0
-    try:
-        g.append(bid.Bid('1c'))
-        temp = temp + 1
-    except ValueError:
-        pass
-    assert temp==0
-
-    temp = 0
-    try:
-        g.append(bid.Bid('d'))
-        temp = temp + 1
-    except ValueError:
-        pass
-    assert temp==0
-"""
+    # good rdbl
+    b = Bidding()
+    b.add_bid(bid.Bid('P'))
+    b.add_bid(bid.Bid('1C'))
+    b.add_bid(bid.Bid('1d'))
+    b.add_bid(bid.Bid('1h'))
+    b.add_bid(bid.Bid('1s'))
+    b.add_bid(bid.Bid('1n'))
+    b.add_bid(bid.Bid('2c'))
+    b.add_bid(bid.Bid('2d'))
+    b.add_bid(bid.Bid('2h'))
+    b.add_bid(bid.Bid('2s'))
+    b.add_bid(bid.Bid('2n'))
+    b.add_bid(bid.Bid('d'))
+    b.add_bid(bid.Bid('r'))
+    b.add_bid(bid.Bid('p'))
+    b.add_bid(bid.Bid('p'))
+    b.add_bid(bid.Bid('p'))
+    assert b.contract=='2N'
+    assert b.position==11
+    assert b.penalty=='R'
