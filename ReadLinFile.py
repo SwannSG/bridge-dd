@@ -6,6 +6,7 @@ import bid
 import bidding
 import board
 import hand
+import rounds
 import utility
 
 
@@ -40,10 +41,13 @@ class ReadLinFile:
         self._lin = self._create_lable_value_pairs(text)
         self._board = board.Board()
         self._bidding = bidding.Bidding()
+        self._rounds = rounds.Rounds()
         self._read_lin()
 
         self._start_playing_round = False
         self._playing_round_count = 0
+
+        self._is_first_round = True 
 
     def _create_lable_value_pairs(self, text:str) -> list:
         assert type(text)==str
@@ -77,19 +81,27 @@ class ReadLinFile:
             elif label=='pg':
                 # start or end of playing round i.e 1 trick taken
                 # bidding is over
+
+                # ADJUST THIS LOGIC "PG" FIRST TIME AND THEN IGNORE 
                 self._board.declarer = ReadLinFile._position_to_declarer[self._bidding.position]
                 self._board.contract = self._bidding.contract
                 self._board.penalty = self._bidding.penalty
                 self._start_playing_round = True
+                self._rounds.declarer = self._board.declarer
+                self._rounds.contract = self._board.contract
+                self._is_first_round = True
             elif label=='pc':
                 # card played, eg. D3, H9
-                value = '%s%s' % (value[1],value[0])
+                card = '%s%s' % (value[1],value[0])
                 if self._start_playing_round:
                     self._start_playing_round = False
                     self._playing_round_count = 1
+                    self._rounds.new_round_card(card, self._is_first_round)
+                    self._is_first_round = False
                 else:
                     self._playing_round_count += 1
-                    if self._playing_round_count==5:
+                    self._rounds.next_card(card)
+                    if self._playing_round_count==4:
                         self._start_playing_round = True
 
         # end of file reached
@@ -149,7 +161,5 @@ if __name__=='__main__':
     assert b.contract=='4S'
     assert b.penalty==''
     assert b.declarer=='E'
-    print (b.bidding)
-    print (b.to_serial())
 
 
