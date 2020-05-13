@@ -93,6 +93,12 @@ class Hand(list):
         self.clear()
         self.bulk_append_card(s + h + d + c)
 
+    def to_serial(self):
+        l = []
+        for v in self:
+            l.append(str(v))
+        return l
+
 if __name__ == '__main__':
     import card
     h = Hand()
@@ -145,3 +151,5 @@ if __name__ == '__main__':
     assert h==[ card.Card('2S'), card.Card('AS'), card.Card('2H'),
                 card.Card('TH'), card.Card('KH'), card.Card('2D'),
                 card.Card('AD'), card.Card('2C'), card.Card('TC'), card.Card('KC')]
+
+    print (h.to_serial())

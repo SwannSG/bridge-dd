@@ -7,6 +7,7 @@ class Bidding:
         self.contract = ''
         self.position = -1
         self.penalty = ''
+        self.dealer = ''
 
         self.bids = [] # takes bid objects 
         self.bidding_closed = False
@@ -104,9 +105,35 @@ class Bidding:
             return True
         return False
 
+    def __repr__(self):
+        d  = {1:['-','-','-'], 2:[], 3:['-'],4:['-','-']}
+        l1 = []
+        l2 = d[utility.Constants.dealer_value_inverse[self.dealer]]  
+        for each in self.bids:
+            if len(l2)==4:
+                l1.append(l2)
+                l2 = []
+                l2.append(each.bid)
+            else:
+                l2.append(each.bid)
+        r = 'W\tN\tE\tS\n'
+        for each in l1:
+            r  = r + '%s\t%s\t%s\t%s\n' % (each[0],each[1],each[2],each[3])
+        if len(l2)==0:
+            return r
+        elif len(l2)==1:
+            r = r + '%s\n' % l2[0]
+        elif len(l2)==2:
+            r = r + '%s\t%s\n' % (l2[0], l2[1])
+        elif len(l2)==3:
+            r = r + '%s\t%s\t%s\n' % (l2[0], l2[1], l2[3])
+        return r
 
-
-
+    def to_serial(self):
+        l = []
+        for v in self.bids:
+            l.append(v.to_serial())
+        return l
 
 if __name__=='__main__':
 
@@ -233,3 +260,4 @@ if __name__=='__main__':
     assert b.contract=='2N'
     assert b.position==11
     assert b.penalty=='R'
+

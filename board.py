@@ -9,9 +9,19 @@ class Board:
         Board object represents a board of bridge
     """
     # O=None, B=Both, N=NorthSouth, E=EastWest
-    vulnerable_values = ['O', 'B', 'N', 'E']
-    dealer_values = ['N', 'S', 'W', 'E']
-    
+    _vulnerable_values = ['O', 'B', 'N', 'E']
+    _dealer_values = ['N', 'S', 'W', 'E']
+
+    @staticmethod
+    def meaning_of_vulnerable_values():
+        print ("'O'=None, 'B'=Both, 'N'=NorthSouth, 'E'=EastWest")
+
+    @staticmethod
+    def meaning_of_dealer_values():
+        print ('"N"=North, "S"=South, "W"=West, "E"=East')
+
+
+
     def __init__(self):
         self.player_south = ''
         self.player_west = ''
@@ -24,33 +34,29 @@ class Board:
         self.deal_hand_2 = hand.Hand()
         self.deal_hand_3 = hand.Hand()
         self.deal_hand_4 = hand.Hand()
-        self.bidding = bidding.Bidding()
+        self.bidding = None # Bidding obj
         self.declarer = ''  
         self.contract = ''
         self.penalty = ''
-        self.play = play.Play()
+        self.play = None    # Play obj
 
     @property
     def vulnerable(self):
         return self.__vulnerable
 
     @vulnerable.setter
-    def vulnerable(self,value):
-        if value in Board.vulnerable_values:
-            self.__vulnerable = value
-        else:
-            raise ValueError('invalid vulnerable value: %s' % value)
+    def vulnerable(self,value:str):
+        assert value in Board._vulnerable_values
+        self.__vulnerable = value 
 
     @property
     def dealer(self):
         return self.__dealer
 
     @dealer.setter
-    def dealer(self,value):
-        if value in Board.dealer_values:
-            self.__dealer = value
-        else:
-            raise ValueError('invalid dealer value: %s' % value)
+    def dealer(self,value:str):
+        assert value in Board._dealer_values
+        self.__dealer = value
         
     def calc_deal_hand_4(self):
         """
@@ -64,7 +70,25 @@ class Board:
         self.deal_hand_4.bulk_append_int(h4)
         self.deal_hand_4.arrange_LIN_cards()
 
-
+    def to_serial(self):
+        d = {}
+        d['player_south'] = self.player_south
+        d['player_west'] = self.player_west
+        d['player_north'] = self.player_north
+        d['player_east'] = self.player_east
+        d['board_name'] = self.board_name
+        d['vulnerable'] = self.vulnerable
+        d['dealer'] = self.dealer
+        d['deal_hand_1'] = self.deal_hand_1.to_serial()
+        d['deal_hand_2'] = self.deal_hand_2.to_serial()
+        d['deal_hand_3'] = self.deal_hand_3.to_serial()
+        d['deal_hand_4'] = self.deal_hand_4.to_serial()
+        d['bidding'] = self.bidding.to_serial()
+        d['declarer'] = self.declarer  
+        d['contract'] = self.contract
+        d['penalty'] = self.penalty
+        # self.play = None    # Play obj
+        return d
 
 
 
@@ -72,4 +96,5 @@ class Board:
 
 
 if __name__  == '__main__':
-    pass
+    Board.meaning_of_dealer_values()
+    Board.meaning_of_vulnerable_values()

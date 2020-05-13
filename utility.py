@@ -41,5 +41,6 @@ class Constants:
     pass_ = 'P'
     is_not_suit_bid = [double, redouble, pass_,]    
     
-
+    dealer_value = {'1': 'S', '2':'W', '3':'N', '4':'E'}
+    dealer_value_inverse = {'S':1, 'W':2, 'N':3, 'E':4}
 

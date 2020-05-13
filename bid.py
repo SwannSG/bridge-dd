@@ -6,6 +6,8 @@ class Bid:
             bid '2c', alert, comment
             position    (added later, position in bidding stream, allows team to be determined) 
     """
+
+
     def __init__(self, bid, alert='', comment=''):
         if bid:
             bid = bid.upper()
@@ -43,7 +45,7 @@ class Bid:
         return True
 
     def __repr__(self):
-        return '%s %s %s %s' % (self.bid, self.alert, self.comment, self.team())
+        return '%s%s%s%s' % (self.bid, self.alert, self.comment, self.team())
 
     def __str__(self):
         return '%s' % self.bid
@@ -57,6 +59,18 @@ class Bid:
             odd number = A, even number = B
         """
         return 'B' if self.position % 2==0 else 'A'
+
+    def to_serial(self, properties = ['bid', 'alert', 'comment']):
+        """
+            returns dictionary represenstation of the object
+            which can be used for json conversion 
+        """
+        d = {}
+        for each in properties:
+            d[each] = self.__dict__[each]
+        return d
+
+
 
 if __name__=='__main__':
     b = Bid('3s', 'alert', 'comment')

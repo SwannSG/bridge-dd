@@ -6,15 +6,19 @@ import bid
 import bidding
 import board
 import hand
+import utility
 
 
 class ReadLinFile:
+    """
+        BBO LIN file reader
+        Creates an internal Board object  
+    """
+    _dealer_value = utility.Constants.dealer_value
+    _regex = regex = r"^S([AKQJT98765432]*)H([AKQJT98765432]*)D([AKQJT98765432]*)C([AKQJT98765432]*)"
+    _pattern = re.compile(_regex)
 
-    dealer_value = {'1': 'S', '2':'W', '3':'N', '4':'E'}
-    regex = regex = r"^S([AKQJT98765432]*)H([AKQJT98765432]*)D([AKQJT98765432]*)C([AKQJT98765432]*)"
-    pattern = re.compile(regex)
-
-    position_to_declarer = {1: 'S', 2: 'W', 3: 'N', 4: 'E', 5: 'S', 6: 'W', 7: 'N', 8: 'E', 9: 'S', 10: 'W',
+    _position_to_declarer = {1: 'S', 2: 'W', 3: 'N', 4: 'E', 5: 'S', 6: 'W', 7: 'N', 8: 'E', 9: 'S', 10: 'W',
      11: 'N', 12: 'E', 13: 'S', 14: 'W', 15: 'N', 16: 'E', 17: 'S', 18: 'W', 19: 'N', 20: 'E',
      21: 'S', 22: 'W', 23: 'N', 24: 'E', 25: 'S', 26: 'W', 27: 'N', 28: 'E', 29: 'S', 30: 'W',
      31: 'N', 32: 'E', 33: 'S', 34: 'W', 35: 'N', 36: 'E', 37: 'S', 38: 'W', 39: 'N', 40: 'E',
@@ -33,12 +37,16 @@ class ReadLinFile:
         text = fp.read()[:-2]
         fp.close()
         # list of (label, value) pairs
-        self.lin = self._create_lable_value_pairs(text)
-        self.board = board.Board()
-        self.bidding = bidding.Bidding()
-        self.read_lin()
+        self._lin = self._create_lable_value_pairs(text)
+        self._board = board.Board()
+        self._bidding = bidding.Bidding()
+        self._read_lin()
 
-    def _create_lable_value_pairs(self, text) -> list:
+        self._start_playing_round = False
+        self._playing_round_count = 0
+
+    def _create_lable_value_pairs(self, text:str) -> list:
+        assert type(text)==str
         l = text.split('|')
         i = 0
         seq = []
@@ -47,61 +55,73 @@ class ReadLinFile:
             i = i + 2
         return seq       
 
-    def read_lin(self):
-        for (label, value) in self.lin:
+    def _read_lin(self):
+        for (label, value) in self._lin:
             if label=='pn':
                 # board players
                 self._pn(value)
             elif label=='ah':
                 # board name
-                self.board.board_name = value
+                self._board.board_name = value
             elif label=='sv':
                 # vulnerability
-                self.board.vulnerable = value.upper()
+                self._board.vulnerable = value.upper()
             elif label=='md':
                 # dealer & hands
-                self.board.dealer = ReadLinFile.dealer_value[value[0]]
+                self._board.dealer = ReadLinFile._dealer_value[value[0]]
+                self._bidding.dealer = ReadLinFile._dealer_value[value[0]]
                 self._md(value)
             elif label=='mb':
                 # bid
-                self.bidding.add_bid(bid.Bid(value))
+                self._bidding.add_bid(bid.Bid(value))
             elif label=='pg':
                 # start or end of playing round i.e 1 trick taken
                 # bidding is over
-                self.board.declarer = ReadLinFile.position_to_declarer[self.bidding.position]
-                self.board.contract = self.bidding.contract
-                self.board.penalty = self.bidding.penalty
+                self._board.declarer = ReadLinFile._position_to_declarer[self._bidding.position]
+                self._board.contract = self._bidding.contract
+                self._board.penalty = self._bidding.penalty
+                self._start_playing_round = True
             elif label=='pc':
                 # card played, eg. D3, H9
                 value = '%s%s' % (value[1],value[0])
-                # self.board.play.append(bo.Card(value))
+                if self._start_playing_round:
+                    self._start_playing_round = False
+                    self._playing_round_count = 1
+                else:
+                    self._playing_round_count += 1
+                    if self._playing_round_count==5:
+                        self._start_playing_round = True
+
+        # end of file reached
+        self._board.bidding = self._bidding
+
 
     def _pn(self, value:str):
         assert type(value)==str
         players = value.split(',')
-        self.board.player_south = players[0]
-        self.board.player_west = players[1]
-        self.board.player_north = players[2]
-        self.board.player_east = players[3]
+        self._board.player_south = players[0]
+        self._board.player_west = players[1]
+        self._board.player_north = players[2]
+        self._board.player_east = players[3]
         
     def _md(self, value:str):
         """
-            Hand details
+            'S569QKAH35D2467C4,S2H78TQKD39TC367Q,S34TJH46ADQAC89JK,'
         """
         assert type(value)==str
         h1, h2, h3 = value[1:-1].split(',')
-        self.board.deal_hand_1 = self._make_hand(h1)
-        self.board.deal_hand_2 = self._make_hand(h2)
-        self.board.deal_hand_3 = self._make_hand(h3)
+        self._board.deal_hand_1 = self._make_hand(h1)
+        self._board.deal_hand_2 = self._make_hand(h2)
+        self._board.deal_hand_3 = self._make_hand(h3)
         # h4 = cardpack - h1 - h2 - h3 
-        self.board.calc_deal_hand_4()
+        self._board.calc_deal_hand_4()
 
     def _make_hand(self, value:str):
         """
             value = 'S569QKAH35D2467C4'
         """
         assert type(value)==str
-        s,h,d,c = ReadLinFile.pattern.search(value).groups()
+        s,h,d,c = ReadLinFile._pattern.search(value).groups()
         hnd = hand.Hand()
         hnd.bulk_append(s, 'S')
         hnd.bulk_append(h, 'H')
@@ -114,7 +134,7 @@ if __name__=='__main__':
     print ('__main__ executing')
     file = '/home/steve/development/doubleDummy/data/3399426641.lin'
     a = ReadLinFile(file)
-    b = a.board
+    b = a._board
     assert b.board_name=='Board 18'  
     assert b.player_south=='barbswill'
     assert b.player_west=='chriskr'  
@@ -129,5 +149,7 @@ if __name__=='__main__':
     assert b.contract=='4S'
     assert b.penalty==''
     assert b.declarer=='E'
+    print (b.bidding)
+    print (b.to_serial())
 
 
