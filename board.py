@@ -38,7 +38,7 @@ class Board:
         self.declarer = ''  
         self.contract = ''
         self.penalty = ''
-        self.play = None    # Play obj
+        self.play = None    # Rounds obj
 
     @property
     def vulnerable(self):
