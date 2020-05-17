@@ -93,3 +93,20 @@ class Rounds():
             return True
         return False
 
+    def _tricks_made(self, declarer:'str:S,W,N,E'):
+        d = {'NS':0, 'EW':0}
+        for round in self.rounds:
+            for card in round:
+                if card.winner:
+                    if card.player=='N' or card.player=='S':
+                        d['NS'] += 1
+                    elif card.player=='E' or card.player=='W':
+                        d['EW'] += 1
+                    else:
+                        print ('ERROR')
+        if declarer=='N' or declarer=='S':
+            return d['NS']
+        elif declarer=='E' or declarer=='W':
+            return d['EW']
+        else:
+            print ('ERROR')

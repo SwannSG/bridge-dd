@@ -8,13 +8,14 @@ class Bid:
     """
 
 
-    def __init__(self, bid, alert='', comment=''):
+    def __init__(self, bid, player:'str:S,W,N,E'='', alert='', comment=''):
         if bid:
             bid = bid.upper()
             self.bid = bid
             self.alert = alert
             self.comment = comment
-            self.position = -1                   # position inside bidding stream
+            self.player = ''                     # S,W,N.E
+            self.position = -1                   # position inside bidding stream 1,2,...
             self.has_rank = self._is_suit(bid)   # bool
             self.rank = self._get_rank(bid)      # -1 if no rank 
         else:
@@ -32,6 +33,7 @@ class Bid:
             include no trumps as well
             excludes pass, double and redouble
         """
+        assert type(value)==str
         if value in utility.Constants.bid_rank: 
             return utility.Constants.bid_rank[value]
         return -1
@@ -41,11 +43,12 @@ class Bid:
             for any bids not 'p'ass, 'd'bl, 'r'db
             includes no trumps
         """
+        assert type(value)==str
         if value in utility.Constants.is_not_suit_bid: return False
         return True
 
     def __repr__(self):
-        return '%s%s%s%s' % (self.bid, self.alert, self.comment, self.team())
+        return '%s:%s:%s:%s:%s:%s' % (self.bid, self.alert, self.comment, self.team(), self.player, self.position)
 
     def __str__(self):
         return '%s' % self.bid
@@ -70,10 +73,28 @@ class Bid:
             d[each] = self.__dict__[each]
         return d
 
-
+    def _set_player_from_position(self, dealer:'str S,W,N,E'):
+        """
+            Determines whether bid is from player S,W,N,E
+            from position in bid stream and who dealer is
+        """
+        assert type(dealer)==str and dealer in utility.Constants.dealer_value_inverse
+        d = {   'S': {1:'S', 2:'W', 3:'N', 0:'E'},
+                'W': {1:'W', 2:'N', 3:'E', 0:'S'},
+                'N': {1:'N', 2:'E', 3:'S', 0:'W'},
+                'E': {1:'E', 2:'S', 3:'W', 0:'N'}}
+        result = ''
+        if self.position<4:
+            result = d[dealer][self.position]
+        elif self.position==4:
+            result = d[dealer][0]
+        else:
+            result = d[dealer][self.position % 4]    
+        self.player = result
+        return self.player
 
 if __name__=='__main__':
-    b = Bid('3s', 'alert', 'comment')
+    b = Bid('3s', alert='alert', comment='comment')
     assert b.bid=='3S'
     assert b.alert=='alert'
     assert b.comment=='comment'
@@ -83,7 +104,7 @@ if __name__=='__main__':
     r = True if b else False
     assert r==True
 
-    b = Bid('3s', 'alert', 'comment')
+    b = Bid('3s', alert='alert', comment='comment')
     b.position = 5
     assert b.team()=='A'
     b.position = 6

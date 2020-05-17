@@ -5,7 +5,7 @@ class Bidding:
 
     def __init__(self):
         self.contract = ''
-        self.position = -1
+        self.position = -1  # is this position of declarer
         self.penalty = ''
         self.dealer = ''
 
@@ -17,6 +17,10 @@ class Bidding:
         self._last_penalty = bid.Bid(None)
 
     def bid_ok(self, value:'Bid') -> bool:
+        """
+            Checks if a Bid is ok in the context of the bid stream
+        """
+        assert type(value)==bid.Bid
         if self.bidding_closed:
             return False
         if not self._last_suit_bid and self._no_suit_bid_count < 4:
@@ -38,6 +42,7 @@ class Bidding:
 
 
     def add_bid(self, value:'Bid') -> None:
+        assert type(value)==bid.Bid
         self._set_bid_position(value)     
         if self.bid_ok(value):
             if value.bid=='P':
@@ -63,20 +68,24 @@ class Bidding:
             raise ValueError('Bid not ok %s position %s' % (value.bid, value.position))
 
     def add_pass(self, value:'Bid'):
+        assert type(value)==bid.Bid
         self._no_suit_bid_count += 1
         self.bids.append(value)
 
     def add_double(self,value:'Bid'):
+        assert type(value)==bid.Bid
         self._no_suit_bid_count = 0
         self._last_penalty = value
         self.bids.append(value)
 
     def add_redouble(self,value:'Bid'):
+        assert type(value)==bid.Bid
         self._no_suit_bid_count = 0
         self._last_penalty = value
         self.bids.append(value)
 
     def add_suit(self, value:'Bid'):
+        assert type(value)==bid.Bid
         self._no_suit_bid_count = 0
         self._last_suit_bid = value
         self._last_penalty = None
@@ -86,17 +95,33 @@ class Bidding:
         """
             set the position from which the bid was made 1,2,3,4 
         """
+        assert type(value)==bid.Bid
         value.position = self._bid_position
         self._bid_position += 1
 
     def end_of_bidding(self):
         self.bidding_closed = True
+        self._add_player_to_bids()
         self._set_contract()
 
     def _set_contract(self):
         self.contract = self._last_suit_bid.bid if self._last_suit_bid else 'all passed' 
-        self.position = self._last_suit_bid.position if self._last_suit_bid else -1
         self.penalty = self._last_penalty.bid if self._last_penalty else ''
+        if self.contract != 'all passed':
+            declarer_position = self._first_time_suit_bid_position(self.contract[1])
+            self.declarer = self.bids[declarer_position-1].player
+            self.position = declarer_position
+            pass
+        else:
+            self.declarer = ''
+
+    def _first_time_suit_bid_position(self, suit:str):
+        assert type(suit)==str and suit in utility.Constants.suits
+        for value in self.bids:
+            if len(value.bid)==2:
+                if value.bid[1] ==suit:
+                    return value.position
+        return -1
 
     def is_end_of_bidding(self) -> bool:
         if self._last_suit_bid and self._no_suit_bid_count==3:
@@ -135,6 +160,12 @@ class Bidding:
             l.append(v.to_serial())
         return l
 
+    def _add_player_to_bids(self):
+        assert self.dealer
+        for each in self.bids:
+            each._set_player_from_position(self.dealer)
+
+
 if __name__=='__main__':
 
     # test
@@ -147,6 +178,7 @@ if __name__=='__main__':
 
     # test with 4 pass bids
     b = Bidding()
+    b.dealer = 'W'
     b.add_bid(bid.Bid('p'))
     assert b.bidding_closed==False
     b.add_bid(bid.Bid('p'))
@@ -162,9 +194,11 @@ if __name__=='__main__':
     assert b.contract=='all passed'
     assert b.penalty==''
     assert b.position==-1
+    assert b.declarer==''
     # end 
 
     b = Bidding()
+    b.dealer = 'E'
     b.add_bid(bid.Bid('P'))
     b.add_bid(bid.Bid('1C'))
     b.add_bid(bid.Bid('P'))
@@ -173,9 +207,11 @@ if __name__=='__main__':
     assert b.contract=='1C'
     assert b.penalty==''
     assert b.position==2
+    assert b.declarer=='S'
     # end
 
     b = Bidding()
+    b.dealer = 'W'
     b.add_bid(bid.Bid('P'))
     b.add_bid(bid.Bid('1C'))
     b.add_bid(bid.Bid('P'))
@@ -186,11 +222,13 @@ if __name__=='__main__':
     assert b.contract=='1S'
     assert b.penalty==''
     assert b.position==4
+    assert b.declarer=='S'
     # end
 
 
     # good dbl
     b = Bidding()
+    b.dealer = 'N'
     b.add_bid(bid.Bid('P'))
     b.add_bid(bid.Bid('1C'))
     b.add_bid(bid.Bid('P'))
@@ -202,10 +240,12 @@ if __name__=='__main__':
     assert b.contract=='1S'
     assert b.penalty=='D'
     assert b.position==4
+    assert b.declarer=='W'
     # end
 
     # bad dbl
     b = Bidding()
+    b.dealer = 'W'
     b.add_bid(bid.Bid('P'))
     b.add_bid(bid.Bid('1C'))
     b.add_bid(bid.Bid('P'))
@@ -224,6 +264,7 @@ if __name__=='__main__':
 
     # bad rdbl
     b = Bidding()
+    b.dealer = 'W'
     b.add_bid(bid.Bid('P'))
     b.add_bid(bid.Bid('1C'))
     b.add_bid(bid.Bid('P'))
@@ -241,6 +282,7 @@ if __name__=='__main__':
 
     # good rdbl
     b = Bidding()
+    b.dealer = 'W'
     b.add_bid(bid.Bid('P'))
     b.add_bid(bid.Bid('1C'))
     b.add_bid(bid.Bid('1d'))
@@ -258,6 +300,6 @@ if __name__=='__main__':
     b.add_bid(bid.Bid('p'))
     b.add_bid(bid.Bid('p'))
     assert b.contract=='2N'
-    assert b.position==11
+    assert b.position==6
     assert b.penalty=='R'
 

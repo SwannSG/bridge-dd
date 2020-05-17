@@ -2,7 +2,6 @@ import utility
 import bidding
 import card
 import hand
-# import play
 
 class Board:
     """
@@ -19,8 +18,6 @@ class Board:
     @staticmethod
     def meaning_of_dealer_values():
         print ('"N"=North, "S"=South, "W"=West, "E"=East')
-
-
 
     def __init__(self):
         self.player_south = ''
@@ -39,6 +36,7 @@ class Board:
         self.contract = ''
         self.penalty = ''
         self.play = None    # Rounds obj
+        self.tricks_made = -1
 
     @property
     def vulnerable(self):
@@ -89,11 +87,6 @@ class Board:
         d['penalty'] = self.penalty
         # self.play = None    # Play obj
         return d
-
-
-
-
-
 
 if __name__  == '__main__':
     Board.meaning_of_dealer_values()

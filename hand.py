@@ -21,6 +21,7 @@ class Hand(list):
         assert type(facevalues)==str
         assert type(suit)==str 
         suit = suit.upper()
+        assert suit in utility.Constants.suits
         facevalues = facevalues.upper()
         for facevalue in facevalues:
             self.append(card.Card(facevalue, suit))
@@ -30,6 +31,7 @@ class Hand(list):
             bulk_append_int([10, 15, 25])
                 integers as card representation
         """
+        assert type(cards)==list
         for each in cards:
             self.append(card.Card(each))
 
@@ -37,6 +39,7 @@ class Hand(list):
         """
             cards = [Card(), Card()]
         """
+        assert type(cards)==list
         for each in cards:
             self.append(each)
 
@@ -56,6 +59,7 @@ class Hand(list):
             value: '6c' or int
             returns: index or -1
         """
+        assert type(value)==str or type(value)==int 
         if isinstance(value, str):
             value = value.upper()
             try:
@@ -71,7 +75,7 @@ class Hand(list):
         except:
             return -1
 
-    def suit_split(self) -> 'tuple([spades], [hearts], [diamonds], [clubs])':
+    def suit_split(self) -> 'tuple([spade, ...], [heart, ...], [diamond, ...], [club, ...])':
         """
             splits hand of card object into 4 suits 
         """
